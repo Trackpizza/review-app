@@ -31,6 +31,10 @@ export default function JobDetail() {
     (typeof window !== 'undefined' ? window.location.origin : '') + `/c/${job.id}`
   const message = `${config.businessName}: your photos are ready! View them & leave a quick review: ${galleryUrl}`
   const smsHref = `sms:${smsDigits(job.contact.mobile)}?body=${encodeURIComponent(message)}`
+  const subject = `${config.businessName} — your photos are ready!`
+  const mailtoHref = `mailto:${job.contact.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`
+
+  const markSent = () => setStatus(job!.id, 'sent', { sentAt: new Date().toISOString() })
 
   const customerCount = job.photos.filter((p) => p.selected).length
   const producerCount = job.photos.filter((p) => p.producerSelected).length
@@ -61,15 +65,28 @@ export default function JobDetail() {
         </div>
       </section>
 
-      <a
-        href={smsHref}
-        onClick={() => setStatus(job.id, 'sent', { sentAt: new Date().toISOString() })}
-        className="block rounded-lg bg-brand py-3 text-center font-semibold text-white"
-      >
-        Text customer the gallery link
-      </a>
+      <div className="space-y-2">
+        {job.contact.mobile && (
+          <a
+            href={smsHref}
+            onClick={markSent}
+            className="block rounded-lg bg-brand py-3 text-center font-semibold text-white"
+          >
+            📱 Text the gallery link
+          </a>
+        )}
+        {job.contact.email && (
+          <a
+            href={mailtoHref}
+            onClick={markSent}
+            className="block rounded-lg border border-brand py-3 text-center font-semibold text-brand"
+          >
+            ✉️ Email the gallery link
+          </a>
+        )}
+      </div>
       <p className="text-center text-xs text-gray-400">
-        Opens Messages prefilled to {job.contact.mobile || 'the customer'}.
+        Opens your Messages or email app, prefilled with the gallery link.
       </p>
     </div>
   )
