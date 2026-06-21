@@ -1,23 +1,21 @@
 'use client'
 
 // Customer page — what the prospect sees on THEIR phone.
-// Order is deliberate: After shot first (the glamour), then Before,
-// then the Google review ask while they're delighted, then the social
-// consent last so it never dampens the moment.
-//
-// PASS 1 note: reads from localStorage, so it only opens on the SAME
-// device. True cross-device (the real pitch) lands when the store swaps
-// to Firestore in pass 2.
+// Reads the single job live from Firestore (works cross-device) and renders
+// from the job's own config snapshot. Order is deliberate: After shot first
+// (the glamour), then Before, then the Google review ask while they're
+// delighted, then the social consent last so it never dampens the moment.
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { getConfig, getJob, updateJob } from '@/lib/store'
-import { useStore } from '@/lib/useStore'
+import { subscribeJob, updateJob } from '@/lib/store'
+import type { Job } from '@/lib/types'
 
 export default function CustomerGallery() {
   const { id } = useParams<{ id: string }>()
-  const config = useStore(getConfig)
-  const job = useStore(() => getJob(id))
+  const [job, setJob] = useState<Job | null | undefined>(undefined)
+
+  useEffect(() => subscribeJob(id, setJob), [id])
 
   useEffect(() => {
     if (job && !job.galleryOpenedAt) {
@@ -26,14 +24,14 @@ export default function CustomerGallery() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job?.id])
 
-  if (!config || !job) {
-    return (
-      <main className="mx-auto max-w-md p-6 text-center text-sm text-gray-400">
-        This gallery isn't available on this device.
-      </main>
-    )
+  if (job === undefined) {
+    return <main className="p-8 text-center text-sm text-gray-400">Loading…</main>
+  }
+  if (!job) {
+    return <main className="p-8 text-center text-sm text-gray-400">This gallery isn’t available.</main>
   }
 
+  const config = job.config
   const selected = job.photos.filter((p) => p.selected)
   const after = selected.filter((p) => p.tag === 'after')
   const before = selected.filter((p) => p.tag === 'before')
@@ -44,7 +42,7 @@ export default function CustomerGallery() {
     <main className="mx-auto max-w-md p-5">
       <div className="mb-5 text-center">
         <h1 className="text-xl font-bold text-ink">{config.businessName}</h1>
-        <p className="text-sm text-gray-500">Thanks, {job.contact.name}! Here's your before & after 👇</p>
+        <p className="text-sm text-gray-500">Thanks, {job.contact.name}! Here’s your before & after 👇</p>
       </div>
 
       <Gallery title="After" photos={after} />

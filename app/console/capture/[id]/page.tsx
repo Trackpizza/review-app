@@ -4,9 +4,10 @@
 // mark complete. The wow in the live demo is how fast these populate
 // into the admin marketing section — so capture is deliberately 2 taps.
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getJob, updateJob, setStatus } from '@/lib/store'
+import { uploadDataUrl } from '@/lib/storage'
 import { useStore } from '@/lib/useStore'
 import type { PhotoTag, Photo, Video } from '@/lib/types'
 
@@ -23,6 +24,7 @@ export default function Capture() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
   const job = useStore(() => getJob(id))
+  const [busy, setBusy] = useState(false)
   const beforeRef = useRef<HTMLInputElement>(null)
   const afterRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLInputElement>(null)
@@ -31,29 +33,41 @@ export default function Capture() {
 
   async function addPhoto(file: File | undefined, tag: PhotoTag) {
     if (!file || !job) return
-    const url = await readFile(file)
-    const photo: Photo = {
-      id: 'p_' + Math.random().toString(36).slice(2, 8),
-      url,
-      tag,
-      selected: true,        // default into the customer gallery
-      producerSelected: false,
-      uploadedAt: new Date().toISOString(),
+    setBusy(true)
+    try {
+      const pid = 'p_' + Math.random().toString(36).slice(2, 8)
+      const url = await uploadDataUrl(`jobs/${job.id}/${pid}`, await readFile(file))
+      const photo: Photo = {
+        id: pid,
+        url,
+        tag,
+        selected: true,        // default into the customer gallery
+        producerSelected: false,
+        uploadedAt: new Date().toISOString(),
+      }
+      updateJob(job.id, { photos: [...job.photos, photo] })
+    } finally {
+      setBusy(false)
     }
-    updateJob(job.id, { photos: [...job.photos, photo] })
   }
 
   async function addVideo(file: File | undefined) {
     if (!file || !job) return
-    const url = await readFile(file)
-    const video: Video = {
-      id: 'v_' + Math.random().toString(36).slice(2, 8),
-      url,
-      selected: true,
-      producerSelected: false,
-      uploadedAt: new Date().toISOString(),
+    setBusy(true)
+    try {
+      const vid = 'v_' + Math.random().toString(36).slice(2, 8)
+      const url = await uploadDataUrl(`jobs/${job.id}/${vid}`, await readFile(file))
+      const video: Video = {
+        id: vid,
+        url,
+        selected: true,
+        producerSelected: false,
+        uploadedAt: new Date().toISOString(),
+      }
+      updateJob(job.id, { videos: [...job.videos, video] })
+    } finally {
+      setBusy(false)
     }
-    updateJob(job.id, { videos: [...job.videos, video] })
   }
 
   function complete() {
@@ -66,7 +80,10 @@ export default function Capture() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Capture</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Capture</h2>
+        {busy && <span className="text-xs font-medium text-brand">Uploading…</span>}
+      </div>
 
       <PhotoGroup title="Before" photos={before} onAdd={() => beforeRef.current?.click()} />
       <PhotoGroup title="After" photos={after} onAdd={() => afterRef.current?.click()} />

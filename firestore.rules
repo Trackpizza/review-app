@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Jobs: the gallery link is a capability, so a single job is publicly
+    // readable. Only the authenticated console can create/delete. The
+    // customer (unauthenticated) may update ONLY their own activity fields.
+    match /jobs/{id} {
+      allow read: if true;
+      allow create, delete: if request.auth != null;
+      allow update: if request.auth != null
+        || request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['galleryOpenedAt', 'reviewClickedAt', 'socialConsentAt', 'updatedAt']);
+    }
+  }
+}

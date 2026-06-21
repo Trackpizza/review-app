@@ -1,14 +1,25 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { signOut } from 'firebase/auth'
+import { auth } from '@/lib/firebase/client'
 import RoleSwitcher from '@/components/RoleSwitcher'
-import { getConfig, resetDemo } from '@/lib/store'
+import Login from '@/components/Login'
+import { getConfig, resetDemo, startJobsSync } from '@/lib/store'
 import { useStore } from '@/lib/useStore'
+import { useAuth } from '@/lib/useAuth'
 
 export default function ConsoleLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const config = useStore(getConfig)
+  const user = useAuth()
+
+  // Start the jobs listener once signed in.
+  useEffect(() => {
+    if (user) startJobsSync()
+  }, [user])
 
   function reset() {
     if (confirm('Reset the demo? This clears all jobs but keeps this business setup.')) {
@@ -16,6 +27,11 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
       router.push('/console')
     }
   }
+
+  if (user === undefined) {
+    return <main className="p-8 text-center text-sm text-gray-400">Loading…</main>
+  }
+  if (user === null) return <Login />
 
   return (
     <div className="min-h-screen">
@@ -34,6 +50,12 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
               className="rounded-md border border-gray-200 px-2 py-1.5 text-xs text-gray-500"
             >
               Reset
+            </button>
+            <button
+              onClick={() => signOut(auth)}
+              className="rounded-md border border-gray-200 px-2 py-1.5 text-xs text-gray-400"
+            >
+              Sign out
             </button>
           </div>
         </div>

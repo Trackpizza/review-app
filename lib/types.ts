@@ -4,7 +4,7 @@
 //   front desk creates -> staff captures -> admin sends -> customer reviews.
 // ============================================================
 
-import type { ConsentScope } from './config'
+import type { BusinessConfig, ConsentScope } from './config'
 
 // Who's using the app right now. Single login in the demo; one person
 // switches roles. The seam is here for real multi-user later.
@@ -68,6 +68,10 @@ export interface Video {
 export interface Job {
   id: string
   status: JobStatus
+  // Snapshot of the business config at creation, so the customer page (a
+  // different device) renders correctly regardless of the console's active
+  // industry, and so reset/industry-switch between walk-ins can't corrupt it.
+  config: BusinessConfig
   contact: Contact
   subject: Record<string, string>  // keyed by SubjectField.key
   address?: string
