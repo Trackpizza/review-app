@@ -43,9 +43,8 @@ export interface BusinessConfig {
   googleReviewUrl: string
 }
 
-// Eric's own keepitlocal Google review link — placeholder until he pastes the real one.
-export const DEFAULT_GOOGLE_REVIEW_URL =
-  'https://search.google.com/local/writereview?placeid=PLACEHOLDER'
+// keepitlocal's Google review link (used for the demo's review button).
+export const DEFAULT_GOOGLE_REVIEW_URL = 'https://g.page/r/CUo-wN23HRRaEBM/review'
 
 // Per-industry defaults. businessName is filled in live at the demo-start screen.
 export const INDUSTRY_PRESETS: Record<IndustryKey, Omit<BusinessConfig, 'businessName'>> = {
