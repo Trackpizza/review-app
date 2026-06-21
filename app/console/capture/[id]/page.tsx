@@ -3,11 +3,12 @@
 // Staff capture: snap BEFORE + AFTER photos and a short video, then
 // mark complete. The wow in the live demo is how fast these populate
 // into the admin marketing section — so capture is deliberately 2 taps.
+// Each shot can be kept or retaken (delete + shoot again).
 
 import { useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getJob, updateJob, setStatus } from '@/lib/store'
-import { uploadDataUrl } from '@/lib/storage'
+import { uploadDataUrl, deleteFile } from '@/lib/storage'
 import { useStore } from '@/lib/useStore'
 import type { PhotoTag, Photo, Video } from '@/lib/types'
 
@@ -70,6 +71,18 @@ export default function Capture() {
     }
   }
 
+  // Retake = remove the shot from the job and delete it from Storage.
+  function removePhoto(p: Photo) {
+    if (!job) return
+    updateJob(job.id, { photos: job.photos.filter((x) => x.id !== p.id) })
+    deleteFile(`jobs/${job.id}/${p.id}`)
+  }
+  function removeVideo(v: Video) {
+    if (!job) return
+    updateJob(job.id, { videos: job.videos.filter((x) => x.id !== v.id) })
+    deleteFile(`jobs/${job.id}/${v.id}`)
+  }
+
   function complete() {
     setStatus(job!.id, 'ready')
     router.push('/console')
@@ -85,8 +98,8 @@ export default function Capture() {
         {busy && <span className="text-xs font-medium text-brand">Uploading…</span>}
       </div>
 
-      <PhotoGroup title="Before" photos={before} onAdd={() => beforeRef.current?.click()} />
-      <PhotoGroup title="After" photos={after} onAdd={() => afterRef.current?.click()} />
+      <PhotoGroup title="Before" photos={before} onAdd={() => beforeRef.current?.click()} onRemove={removePhoto} />
+      <PhotoGroup title="After" photos={after} onAdd={() => afterRef.current?.click()} onRemove={removePhoto} />
 
       <section className="rounded-2xl bg-white p-4 shadow-sm">
         <div className="mb-2 flex items-center justify-between">
@@ -95,10 +108,16 @@ export default function Capture() {
             + Add video
           </button>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           {job.videos.map((v) => (
-            <video key={v.id} src={v.url} className="h-20 w-20 rounded-lg object-cover" />
+            <div key={v.id} className="flex flex-col items-center gap-1">
+              <video src={v.url} className="h-20 w-20 rounded-lg object-cover" />
+              <button onClick={() => removeVideo(v)} className="text-[11px] font-medium text-red-500">
+                Retake
+              </button>
+            </div>
           ))}
+          {job.videos.length === 0 && <p className="text-xs text-gray-400">No video yet.</p>}
         </div>
       </section>
 
@@ -118,18 +137,23 @@ export default function Capture() {
 }
 
 function PhotoGroup({
-  title, photos, onAdd,
-}: { title: string; photos: Photo[]; onAdd: () => void }) {
+  title, photos, onAdd, onRemove,
+}: { title: string; photos: Photo[]; onAdd: () => void; onRemove: (p: Photo) => void }) {
   return (
     <section className="rounded-2xl bg-white p-4 shadow-sm">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-sm font-medium text-gray-700">{title} ({photos.length})</p>
         <button onClick={onAdd} className="text-sm font-semibold text-brand">+ Add {title.toLowerCase()}</button>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-3">
         {photos.map((p) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={p.id} src={p.url} alt={title} className="h-20 w-20 rounded-lg object-cover" />
+          <div key={p.id} className="flex flex-col items-center gap-1">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={p.url} alt={title} className="h-20 w-20 rounded-lg object-cover" />
+            <button onClick={() => onRemove(p)} className="text-[11px] font-medium text-red-500">
+              Retake
+            </button>
+          </div>
         ))}
         {photos.length === 0 && <p className="text-xs text-gray-400">No {title.toLowerCase()} photos yet.</p>}
       </div>
